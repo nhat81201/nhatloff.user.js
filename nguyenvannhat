@@ -1,0 +1,299 @@
+-- ==========================================
+-- NHẬT HUB Key System - Toàn Diện [360x190]
+-- ==========================================
+local service = 26089; 
+local secret = "8b8f1f5d-bda0-439b-9885-0e1119835781";
+local useNonce = true; 
+
+-- BẢO MẬT ADMIN KHÓA THEO THIẾT BỊ CỦA BẠN
+local adminKey = "NHATVIPFCM";
+local adminHWID = "4ceb8be32caa5b0e81471368874bdb9388e00f23620419af9db1f92978706010"; 
+
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local fSetClipboard = setclipboard or toclipboard or (Clipboard and Clipboard.set) or function() end
+local fRequest = request or http_request or (http and http.request)
+local fStringChar, fToString, fStringSub, fOsTime, fMathRandom, fMathFloor = string.char, tostring, string.sub, os.time, math.random, math.floor
+local fGetHwid = gethwid or function() return game:GetService("Players").LocalPlayer.UserId end
+local cachedLink, cachedTime = "", 0;
+local host = "https://api.platoboost.net"; 
+
+function lEncode(data) return HttpService:JSONEncode(data) end
+function lDecode(data) return HttpService:JSONDecode(data) end
+local function lDigest(input)
+    local inputStr = tostring(input)
+    local hash = {}
+    for i = 1, #inputStr do table.insert(hash, string.byte(inputStr, i)) end
+    local hashHex = ""
+    for _, byte in ipairs(hash) do hashHex = hashHex .. string.format("%02x", byte) end
+    return hashHex
+end
+
+function cacheLink()
+    if cachedTime + (10*60) < fOsTime() then
+        local success, response = pcall(function()
+            return fRequest({
+                Url = host .. "/public/start",
+                Method = "POST",
+                Body = lEncode({ service = service, identifier = lDigest(fGetHwid()) }),
+                Headers = { ["Content-Type"] = "application/json" }
+            });
+        end)
+        if success and response and response.StatusCode == 200 then
+            local decoded = lDecode(response.Body);
+            if decoded.success == true then
+                cachedLink = decoded.data.url;
+                cachedTime = fOsTime();
+                return true, cachedLink;
+            end
+        end
+        return false, "Failed to cache link."
+    else
+        return true, cachedLink;
+    end
+end
+
+local generateNonce = function()
+    local str = ""
+    for _ = 1, 16 do str = str .. fStringChar(fMathFloor(fMathRandom() * (122 - 97 + 1)) + 97) end
+    return str
+end
+
+local verifyKey = function(key)
+    if not fRequest then return false end
+    local nonce = generateNonce();
+    local endpoint = host .. "/public/whitelist/" .. fToString(service) .. "?identifier=" .. lDigest(fGetHwid()) .. "&key=" .. key;
+    if useNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
+
+    local success, response = pcall(function()
+        return fRequest({ Url = endpoint, Method = "GET" });
+    end)
+
+    if success and response and response.StatusCode == 200 then
+        local decoded = lDecode(response.Body);
+        if decoded.success == true and decoded.data.valid == true then return true; end
+    end
+    return false;
+end
+
+-- ==========================================
+-- GIAO DIỆN CYBER MINI (NHẬT HUB v9.0)
+-- ==========================================
+task.spawn(function()
+    local Player = game.Players.LocalPlayer
+    local PlayerGui = Player:WaitForChild("PlayerGui", 10)
+    if not PlayerGui then return end
+    
+    if PlayerGui:FindFirstChild("HoshiMechKey") then PlayerGui.HoshiMechKey:Destroy() end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "nuclear bomb MechKey"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = PlayerGui
+    
+    local NeonColor = Color3.fromRGB(50, 255, 100)
+
+    -- Bảng chính thu gọn (360 x 190)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 20)
+    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -95)
+    MainFrame.Size = UDim2.new(0, 360, 0, 190)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 4)
+    
+    local MainStroke = Instance.new("UIStroke", MainFrame)
+    MainStroke.Color = NeonColor
+    MainStroke.Thickness = 1
+    MainStroke.Transparency = 0.4
+    
+    -- Topbar máy móc
+    local Topbar = Instance.new("Frame")
+    Topbar.Parent = MainFrame
+    Topbar.BackgroundColor3 = Color3.fromRGB(25, 30, 35)
+    Topbar.Size = UDim2.new(1, 0, 0, 26)
+    Topbar.BorderSizePixel = 0
+    Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 4)
+    
+    local TopbarFix = Instance.new("Frame")
+    TopbarFix.Parent = Topbar
+    TopbarFix.BackgroundColor3 = Color3.fromRGB(25, 30, 35)
+    TopbarFix.Position = UDim2.new(0, 0, 1, -3)
+    TopbarFix.Size = UDim2.new(1, 0, 0, 3)
+    TopbarFix.BorderSizePixel = 0
+    
+    local Title = Instance.new("TextLabel")
+    Title.Parent = Topbar
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.Size = UDim2.new(0, 250, 1, 0)
+    Title.Font = Enum.Font.Code
+    Title.Text = ":: NHẬT HUB TERMINAL v9.0 ::"
+    Title.TextColor3 = NeonColor
+    Title.TextSize = 11
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local ExitBtn = Instance.new("TextButton")
+    ExitBtn.Parent = Topbar
+    ExitBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    ExitBtn.Position = UDim2.new(1, -20, 0.5, -7)
+    ExitBtn.Size = UDim2.new(0, 14, 0, 14)
+    ExitBtn.Text = "×"
+    ExitBtn.Font = Enum.Font.SourceSansBold
+    ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ExitBtn.TextSize = 14
+    Instance.new("UICorner", ExitBtn).CornerRadius = UDim.new(0, 2)
+    
+    local function makeLine(posX, sizeY)
+        local l = Instance.new("Frame", MainFrame)
+        l.BackgroundColor3 = NeonColor
+        l.BackgroundTransparency = 0.8
+        l.BorderSizePixel = 0
+        l.Position = posX
+        l.Size = UDim2.new(0, 1, 0, sizeY)
+    end
+    makeLine(UDim2.new(0, 6, 0, 32), 150)
+    makeLine(UDim2.new(1, -7, 0, 32), 150)
+    
+    -- Màn hình Console hiển thị mã lệnh
+    local Console = Instance.new("Frame")
+    Console.Parent = MainFrame
+    Console.BackgroundColor3 = Color3.fromRGB(10, 12, 14)
+    Console.Position = UDim2.new(0.05, 0, 0, 34)
+    Console.Size = UDim2.new(0.9, 0, 0, 52)
+    Console.BorderSizePixel = 0
+    Instance.new("UICorner", Console).CornerRadius = UDim.new(0, 3)
+    local ConsoleStroke = Instance.new("UIStroke", Console)
+    ConsoleStroke.Color = NeonColor
+    ConsoleStroke.Thickness = 1
+    ConsoleStroke.Transparency = 0.7
+
+    local function createLog(text, posY, color)
+        local lbl = Instance.new("TextLabel", Console)
+        lbl.BackgroundTransparency = 1
+        lbl.Position = UDim2.new(0, 8, 0, posY)
+        lbl.Size = UDim2.new(1, -16, 0, 14)
+        lbl.Font = Enum.Font.Code
+        lbl.Text = text
+        lbl.TextColor3 = color or Color3.fromRGB(180, 200, 180)
+        lbl.TextSize = 10
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        return lbl
+    end
+    createLog("> CONSOLE: ACTIVE [SYSTEM ON]", 4, NeonColor)
+    createLog("> HWID: " .. string.sub(lDigest(fGetHwid()), 1, 16) .. "...", 18)
+    local StatusLine = createLog("> STATUS: AWAITING VALIDATION...", 32, Color3.fromRGB(255, 255, 255))
+    
+    -- Khung nhập Key cơ khí
+    local InputFrame = Instance.new("Frame")
+    InputFrame.Parent = MainFrame
+    InputFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 24)
+    InputFrame.Position = UDim2.new(0.05, 0, 0, 94)
+    InputFrame.Size = UDim2.new(0.9, 0, 0, 32)
+    Instance.new("UICorner", InputFrame).CornerRadius = UDim.new(0, 3)
+    local InStroke = Instance.new("UIStroke", InputFrame)
+    InStroke.Color = Color3.fromRGB(60, 70, 60)
+    InStroke.Thickness = 1
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Parent = InputFrame
+    TextBox.BackgroundTransparency = 1
+    TextBox.Position = UDim2.new(0, 8, 0, 0)
+    TextBox.Size = UDim2.new(1, -16, 1, 0)
+    TextBox.Font = Enum.Font.Code
+    TextBox.Text = ""
+    TextBox.TextColor3 = NeonColor
+    TextBox.TextSize = 12
+    TextBox.PlaceholderText = "[ ENTER ACCESS KEY HERE ]"
+    TextBox.PlaceholderColor3 = Color3.fromRGB(80, 90, 80)
+    
+    -- Thiết kế nút bấm kỹ thuật
+    local function createBtn(name, text, posX)
+        local btn = Instance.new("TextButton", MainFrame)
+        btn.Name = name
+        btn.BackgroundColor3 = Color3.fromRGB(25, 30, 35)
+        btn.Position = posX
+        btn.Size = UDim2.new(0, 156, 0, 32)
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        btn.TextSize = 11
+        btn.AutoButtonColor = false
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 3)
+        local bStroke = Instance.new("UIStroke", btn)
+        bStroke.Color = Color3.fromRGB(60, 60, 70)
+        bStroke.Thickness = 1
+        
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(35, 45, 40), TextColor3 = NeonColor}):Play()
+            TweenService:Create(bStroke, TweenInfo.new(0.1), {Color = NeonColor}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(25, 30, 35), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            TweenService:Create(bStroke, TweenInfo.new(0.1), {Color = Color3.fromRGB(60, 60, 70)}):Play()
+        end)
+        return btn
+    end
+    
+    local GetKeyBtn = createBtn("GetKeyBtn", "lấy key mà chơi", UDim2.new(0.05, 0, 0, 134))
+    local CheckKeyBtn = createBtn("CheckKeyBtn", "Nhật vip", UDim2.new(1, -176, 0, 134))
+    
+    -- XỬ LÝ SỰ KIỆN KIỂM TRA MÃ TRUY CẬP
+    CheckKeyBtn.MouseButton1Down:Connect(function() 
+        local inputKey = TextBox.Text
+        local currentHWID = tostring(fGetHwid())
+
+        if inputKey ~= "" then
+            -- KIỂM TRA ADMIN KEY KÈM BẢO MẬT HWID THIẾT BỊ
+            if inputKey == adminKey then
+                if currentHWID == adminHWID then
+                    StatusLine.Text = ">> ADMIN APPROVED. INJECTING VIP..."
+                    StatusLine.TextColor3 = NeonColor
+                    task.wait(0.8)
+                    ScreenGui:Destroy()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/main/MergeaNuke"))()
+                    return
+                else
+                    StatusLine.Text = ">> WARNING: UNAUTHORIZED DEVICE!"
+                    StatusLine.TextColor3 = Color3.fromRGB(255, 80, 80)
+                    return
+                end
+            end
+            
+            -- KIỂM TRA KEY THƯỜNG (PLATOBOOST)
+            StatusLine.Text = "> CONTACTING PLATO REPOSITORY..."
+            StatusLine.TextColor3 = Color3.fromRGB(255, 200, 0)
+            local Verify = verifyKey(inputKey)
+            if Verify then
+                StatusLine.Text = ">> SUCCESS. LAUNCHING SCRIPT..."
+                StatusLine.TextColor3 = NeonColor
+                task.wait(0.8)
+                ScreenGui:Destroy()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/main/MergeaNuke"))()
+            else
+                StatusLine.Text = ">> ACCESS DENIED: INVALID KEY."
+                StatusLine.TextColor3 = Color3.fromRGB(255, 80, 80)
+            end 
+        end 
+    end)
+    
+    GetKeyBtn.MouseButton1Down:Connect(function() 
+        StatusLine.Text = "> GENERATING SECURE GATEWAY..."
+        StatusLine.TextColor3 = Color3.fromRGB(255, 200, 0)
+        local success, link = cacheLink();
+        if success and link ~= "" then
+            fSetClipboard(link);
+            StatusLine.Text = ">> DECRYPTED LINK COPIED."
+            StatusLine.TextColor3 = NeonColor
+        else
+            local backupLink = "https://gateway.platoboost.net/a/" .. fToString(service) .. "?id=" .. lDigest(fGetHwid())
+            fSetClipboard(backupLink);
+            StatusLine.Text = ">> BACKUP LINK INJECTED."
+            StatusLine.TextColor3 = NeonColor
+        end
+    end)
+    
+    ExitBtn.MouseButton1Down:Connect(function() ScreenGui:Destroy() end)
+end)
